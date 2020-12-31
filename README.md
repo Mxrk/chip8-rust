@@ -1,6 +1,5 @@
 # Chip8
-
-I created this project because I was interested in Rust and emulation, so I created a chip8 emulator in Rust.
+I created this project because of my interest in Rust and emulation.
 
 # Todo
 
@@ -10,11 +9,11 @@ I created this project because I was interested in Rust and emulation, so I crea
 - [] Sound
     -> Already implemented the timer, just have to add the frequenz and the playback.
 
-- [ ] Keyboard Input
+- [x] Keyboard Input
     -> I know how it's working and implemented the basic concept, just have to fix another bug before 
     adding controls.
 
 - [ ] Tests
 
-- [ ] Make the code pretty. I learned the basics with this project so at the moment it's kinda messy.
+- [ ] Clean the code - I learned the basics with this project so at the moment it's kinda messy.
 
