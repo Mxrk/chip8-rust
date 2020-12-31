@@ -119,116 +119,122 @@ impl Chip8 {
       (0x0F, _, 0x06, 0x05) => self.op_fx65(a),
       _ => panic!("Couldn't find a matching opcode. Panic: {:X}", a),
     }
-    self.pc = self.pc + 2;
   }
 
   // calls program at adress nnn
   pub fn op_0nnn(&mut self, adr: usize) {
-    // println!("0nnn - SYS addr");
+    println!("0nnn - SYS addr");
     self.pc = adr;
     self.pc -= 2;
   }
 
   //Clears the screen
   pub fn op_00e0(&mut self) {
-    // println!("00E0 - CLS");
+    //println!("00E0 - CLS");
     self.vram = [[0; VRAMW]; VRAMH];
     self.update_screen = true;
+    self.next_instruction()
   }
 
   //return from subroutine
   pub fn op_00ee(&mut self) {
-    // println!("00EE - RET");
+    //println!("00EE - RET");
     self.sp = self.sp - 1;
     self.pc = self.stack[self.sp] as usize;
-    self.pc -= 2;
+    self.next_instruction()
     //println!("PC: 0x{:x}", self.pc)
   }
 
   //jumps to an address
   pub fn op_1nnn(&mut self, adr: usize) {
-    //println!("1nnn - JP addr");
+   // println!("1nnn - JP addr");
     self.pc = adr;
-    self.pc -= 2;
   }
 
   //calls subroutine
   pub fn op_2nnn(&mut self, adr: usize) {
-    // println!("2nnn - CALL addr");
-    // println!("stack {:?}", self.stack);
-    // println!("sp {:?}", self.sp);
+    //println!("2nnn - CALL addr");
     self.stack[self.sp] = self.pc as u16;
     self.sp = self.sp + 1;
     self.pc = adr;
-    self.pc -= 2;
   }
   //Skip next introduction if vx == kk
   pub fn op_3xkk(&mut self, x: usize, kk: u8) {
-    //println!("3xkk - SE Vx, byte");
+   // println!("3xkk - SE Vx, byte");
     if self.v[x] == kk {
       self.next_instruction();
     }
+    self.next_instruction();
     // println!("PC after 3xkk: {:X}", self.pc);
   }
 
   //Skip next introduction if vx != kk
   pub fn op_4xkk(&mut self, x: usize, kk: u8) {
-    //println!("4xkk - SNE Vx, byte");
+   // println!("4xkk - SNE Vx, byte");
     if self.v[x] != kk {
       self.next_instruction();
     }
+    self.next_instruction();
   }
   //Skip next introduction if Vx == Vy
   pub fn op_5xy0(&mut self, x: usize, y: usize) {
-    //println!("5xy0 - SE Vx, Vy");
+   // println!("5xy0 - SE Vx, Vy");
     if self.v[x] == self.v[y] {
       self.next_instruction();
     }
+    self.next_instruction();
   }
 
   //Sets VX to NN -> Vx = NN
   pub fn op_6xnn(&mut self, x: usize, kk: u8) {
-    // println!("6xkk - LD Vx, byte");
+   // println!("6xkk - LD Vx, byte");
     self.v[x] = kk;
+    self.next_instruction();
   }
   //adds value vx + kk and store in in vx
   pub fn op_7xkk(&mut self, x: usize, kk: u8) {
-    println!("7xkk - ADD Vx, byte");
+   // println!("7xkk - ADD Vx, byte");
     self.v[x] = self.v[x].wrapping_add(kk);
+    self.next_instruction();
   }
 
   //set Vx = Vy.
   pub fn op_8xy0(&mut self, x: usize, y: usize) {
-    // println!("8xy0 - LD Vx, Vy");
+   // println!("8xy0 - LD Vx, Vy");
     self.v[x] = self.v[y];
+    self.next_instruction();
   }
   //set vx = vx or vy
   pub fn op_8xy1(&mut self, x: usize, y: usize) {
-    // println!("8xy1 - OR Vx, Vy");
+    //println!("8xy1 - OR Vx, Vy");
     self.v[x] = self.v[x] | self.v[y];
+    self.next_instruction();
   }
   //set vx = vx and vy
   pub fn op_8xy2(&mut self, x: usize, y: usize) {
-    // println!("8xy2 - AND Vx, Vy");
+    //println!("8xy2 - AND Vx, Vy");
     self.v[x] = self.v[x] & self.v[y];
+    self.next_instruction();
   }
   //set vx = vx xor vy
   pub fn op_8xy3(&mut self, x: usize, y: usize) {
-    // println!("8xy3 - XOR Vx, Vy");
+    //println!("8xy3 - XOR Vx, Vy");
     self.v[x] = self.v[x] ^ self.v[y];
+    self.next_instruction();
   }
 
   //set vx = vx + vy, set carry
   pub fn op_8xy4(&mut self, x: usize, y: usize) {
-    // println!("8xy4 - ADD Vx, Vy");
+   // println!("8xy4 - ADD Vx, Vy");
     let (sum, carry) = self.v[x].overflowing_add(self.v[y]);
     self.v[x] = sum;
     self.v[0xF] = carry as u8;
+    self.next_instruction();
   }
 
   //set vx = vx - vy, set carry = not borrow
   pub fn op_8xy5(&mut self, x: usize, y: usize) {
-    // println!("8xy5 - SUB Vx, Vy");
+    //println!("8xy5 - SUB Vx, Vy");
     if self.v[x] > self.v[y] {
       self.v[0xF] = 1;
     } else {
@@ -236,17 +242,18 @@ impl Chip8 {
     }
 
     self.v[x] = self.v[x].wrapping_sub(self.v[y]);
+    self.next_instruction();
   }
   //Set Vx = Vx SHR 1
   pub fn op_8xy6(&mut self, x: usize) {
-    // println!("8xy6 - SHR Vx , Vy");
+    //println!("8xy6 - SHR Vx , Vy");
     self.v[0xf] = self.v[x] & 1;
-
     self.v[x] = self.v[x] / 2;
+    self.next_instruction();
   }
   //Set Vx = Vy - Vx, set VF = NOT borrow.
   pub fn op_8xy7(&mut self, x: usize, y: usize) {
-    // println!("8xy7 - SUBN Vx, Vy");
+    //println!("8xy7 - SUBN Vx, Vy");
     if self.v[y] > self.v[x] {
       self.v[0xF] = 1;
     } else {
@@ -254,10 +261,11 @@ impl Chip8 {
     }
 
     self.v[x] = self.v[y].wrapping_sub(self.v[x]);
+    self.next_instruction();
   }
   //Set Vx = Vx SHL 1.
   pub fn op_8xye(&mut self, x: usize) {
-    // println!("8xyE - SHL Vx , Vy");
+    //println!("8xyE - SHL Vx , Vy");
     self.v[0xf] = (self.v[x] >> 7) & 1;
     self.v[x] = self.v[x] * 2;
   }
@@ -268,23 +276,25 @@ impl Chip8 {
     if self.v[x] != self.v[y] {
       self.next_instruction();
     }
+    self.next_instruction();
   }
   //Set I = nnn.
   pub fn op_annn(&mut self, adr: usize) {
-    //  println!("Annn - LD I, addr");
+   // println!("Annn - LD I, addr");
     self.i = adr;
+    self.next_instruction();
   }
   //Jump to location nnn + V0.
   pub fn op_bnnn(&mut self, adr: usize) {
-    // println!("Bnnn - JP V0, addr");
+    //println!("Bnnn - JP V0, addr");
     self.pc = adr + self.v[0] as usize;
-    self.pc -= 2;
   }
   //Set Vx = random byte AND kk.
   pub fn op_cxkk(&mut self, x: usize, adr: u8) {
-    // println!("Cxkk - RND Vx, byte");
+   // println!("Cxkk - RND Vx, byte");
     let mut rng = rand::thread_rng();
     self.v[x] = rng.gen::<u8>() & adr;
+    self.next_instruction();
   }
   //Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
   pub fn op_dxyn(&mut self, x: usize, y: usize, n: usize) {
@@ -300,26 +310,30 @@ impl Chip8 {
       }
     }
     self.update_screen = true;
+    self.next_instruction();
   }
   //Skip next instruction if key with the value of Vx is pressed.
   pub fn op_ex9e(&mut self, x: usize) {
-    // println!("Ex9E - SKP Vx");
+   // println!("Ex9E - SKP Vx");
     if self.keyboard[self.v[x] as usize] {
       self.next_instruction();
     }
+    self.next_instruction();
   }
   //Skip next instruction if key with the value of Vx is not pressed.
   pub fn op_exa1(&mut self, x: usize) {
-    // println!("ExA1 - SKNP Vx");
+    //println!("ExA1 - SKNP Vx");
     if !self.keyboard[self.v[x] as usize] {
       self.next_instruction();
     }
+    self.next_instruction();
   }
 
   //Set Vx = delay timer value.
   pub fn op_fx07(&mut self, x: usize) {
-    // println!("Fx07 - LD Vx, DT");
+  //  println!("Fx07 - LD Vx, DT");
     self.v[x] = self.delay;
+    self.next_instruction();
   }
 
   //Wait for a key press, store the value of the key in Vx.
@@ -334,51 +348,58 @@ impl Chip8 {
         break;
       }
     }
+    self.next_instruction();
   }
   //Set delay timer = Vx.
   pub fn op_fx15(&mut self, x: usize) {
-    // println!("Fx15 - LD DT, Vx");
+    //println!("Fx15 - LD DT, Vx");
     self.delay = self.v[x];
+    self.next_instruction();
   }
 
   //Set sound timer = Vx.
   pub fn op_fx18(&mut self, x: usize) {
-    // println!("Fx18 - LD ST, Vx");
+   // println!("Fx18 - LD ST, Vx");
     self.sound = self.v[x];
+    self.next_instruction();
   }
 
   //Set I = I + Vx.
   pub fn op_fx1e(&mut self, x: usize) {
-    // println!("Fx1E - ADD I, Vx");
+    //println!("Fx1E - ADD I, Vx");
     self.i = self.i + (self.v[x] as usize);
   }
 
   //Set I = location of sprite for digit Vx.
   pub fn op_fx29(&mut self, x: usize) {
-    // println!("Fx29 - LD F, Vx");
+    //println!("Fx29 - LD F, Vx");
     //because they are 5 bytes long
     self.i = (self.v[x] as usize) * 5;
+    self.next_instruction();
   }
   // Store BCD representation of Vx in memory locations I, I+1, and I+2.
   pub fn op_fx33(&mut self, x: usize) {
-    // println!("Fx33 - LD B, Vx");
+    //println!("Fx33 - LD B, Vx");
     // X23 -> x in i
     self.memory[self.i] = self.v[x] / 100;
     // 1X3 -> x in i+1
     self.memory[self.i + 1] = (self.v[x] % 100) / 10;
     // 12X -> x in i+2
     self.memory[self.i + 2] = self.v[x] % 10;
+    self.next_instruction();
   }
 
   //Store registers V0 through Vx in memory starting at location I.
   pub fn op_fx55(&mut self, x: usize) {
-    // println!("Fx55 - LD [I], Vx");
+    //println!("Fx55 - LD [I], Vx");
     self.memory[self.i..self.i + x + 1].copy_from_slice(&self.v[0..x + 1]);
+    self.next_instruction();
   }
   //Read registers V0 through Vx from memory starting at location I.
   fn op_fx65(&mut self, x: usize) {
-    // println!("Fx65 - LD Vx, [I]");
+    //println!("Fx65 - LD Vx, [I]");
     self.v[0..x + 1].copy_from_slice(&self.memory[self.i..self.i + x + 1]);
+    self.next_instruction();
   }
 }
 
